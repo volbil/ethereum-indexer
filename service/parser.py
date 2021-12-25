@@ -41,6 +41,9 @@ def process_transactions(height):
         if (tx["value"] == 0 and not data.startswith("0xa9059cbb")):
             continue
 
+        if not sender or not receiver:
+            continue
+
         if data.startswith("0xa9059cbb"):
             contract_to = "0x" + data[10:-64][-40:]
 
