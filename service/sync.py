@@ -121,7 +121,7 @@ def sync_index():
         })
 
         txs = process_transactions(w3, height)
-        log_message(f"New block: hash={block.blockhash} tx={len(txs)}")
+        log_message(f"New block #{block.height}, {block.blockhash}, {len(txs)} tx")
 
         for tx in txs:
             contract = Contract.get(address=tx["contract"])
