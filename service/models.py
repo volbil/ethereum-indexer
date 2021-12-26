@@ -45,5 +45,30 @@ class Transaction(db.Entity):
     index = orm.Required(int)
     data = orm.Required(str)
 
+    @property
+    def display(self):
+        contract = None if not self.contract else {
+            "decimals": self.contract.decimals,
+            "address": self.contract.address,
+            "ticker": self.contract.ticker,
+            "name": self.contract.name
+        }
+
+        return {
+            "receiver": self.receiver.address,
+            "sender": self.sender.address,
+            "value": float(self.value),
+            "index": self.index,
+            "token": self.token,
+            "data": self.data,
+            "txid": self.txid,
+            "contract": contract,
+            "block": {
+                "created": int(self.block.created.timestamp()),
+                "blockhash": self.block.blockhash,
+                "height": self.block.height
+            }
+        }
+
 
 db.generate_mapping(create_tables=True)
