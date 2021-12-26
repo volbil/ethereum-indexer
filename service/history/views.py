@@ -10,7 +10,7 @@ blueprint = Blueprint("v1", __name__, url_prefix="/v1")
 def history(address):
     result = {"error": None, "data": []}
 
-    if (address := Address.get(address=address)):
+    if (address := Address.get(address=address.lower())):
         transactions = Transaction.select(
             lambda t: t.sender == address or t.receiver == address
         )
@@ -22,7 +22,7 @@ def history(address):
 def transaction(txid):
     result = {"error": None, "data": {}}
 
-    if (transaction := Transaction.get(txid=txid)):
+    if (transaction := Transaction.get(txid=txid.lower())):
         contract = None if not transaction.contract else {
             "decimals": transaction.contract.decimals,
             "address": transaction.contract.address,

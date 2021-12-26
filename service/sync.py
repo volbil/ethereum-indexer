@@ -59,13 +59,13 @@ def process_transactions(w3, height):
             "contract": contract.lower(),
             "receiver": receiver.lower(),
             "sender": sender.lower(),
+            "txid": txid.lower(),
             "gasprice": gasprice,
             "gasused": gasused,
             "value": value,
-            "index": index,
-            "data": data,
             "token": token,
-            "txid": txid
+            "index": index,
+            "data": data
         })
 
     return result
@@ -93,8 +93,7 @@ def sync_index():
             "height": config.start_height
         })
 
-    # current_height = w3.eth.blockNumber
-    current_height = 6085037
+    current_height = w3.eth.blockNumber
 
     log_message(f"Current height {current_height}, db height {latest.height}")
 
