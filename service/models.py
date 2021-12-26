@@ -46,6 +46,14 @@ class Transaction(db.Entity):
     data = orm.Required(str)
 
     @property
+    def confirmations(self):
+        latest_blocks = Block.select().order_by(
+            orm.desc(Block.height)
+        ).first()
+
+        return latest_blocks.height - self.block.height + 1
+
+    @property
     def display(self):
         contract = None if not self.contract else {
             "decimals": self.contract.decimals,
@@ -55,6 +63,7 @@ class Transaction(db.Entity):
         }
 
         return {
+            "confirmations": self.confirmations,
             "receiver": self.receiver.address,
             "sender": self.sender.address,
             "value": float(self.value),
