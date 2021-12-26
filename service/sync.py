@@ -11,15 +11,14 @@ import math
 
 DECIMALS = 18
 
-w3 = Web3(HTTPProvider(config.endpoint))
-
-if config.testnet:
-    w3.middleware_onion.inject(geth_poa_middleware, layer=0)
+def log_message(message):
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print(f"{now} {message}")
 
 def amount(value, decimals):
     return round(float(value) / math.pow(10, decimals), decimals)
 
-def process_transactions(height):
+def process_transactions(w3, height):
     txs = w3.eth.getBlockTransactionCount(height)
     result = []
 
@@ -57,11 +56,11 @@ def process_transactions(height):
             token = True
 
         result.append({
-            "contract": contract,
-            "receiver": receiver,
+            "contract": contract.lower(),
+            "receiver": receiver.lower(),
+            "sender": sender.lower(),
             "gasprice": gasprice,
             "gasused": gasused,
-            "sender": sender,
             "value": value,
             "index": index,
             "data": data,
@@ -72,7 +71,14 @@ def process_transactions(height):
     return result
 
 @orm.db_session
-def parser():
+def sync_index():
+    log_message("Syncing block index")
+
+    w3 = Web3(HTTPProvider(config.endpoint))
+
+    if config.testnet:
+        w3.middleware_onion.inject(geth_poa_middleware, layer=0)
+
     for contract in config.contracts:
         if not Contract.get(address=contract["address"]):
             Contract(**contract)
@@ -87,26 +93,25 @@ def parser():
             "height": config.start_height
         })
 
-    current_height = w3.eth.blockNumber
+    # current_height = w3.eth.blockNumber
+    current_height = 6085037
 
-    print(f"Current height {current_height}, db height {latest.height}")
+    log_message(f"Current height {current_height}, db height {latest.height}")
 
     if latest.blockhash != w3.eth.getBlock(latest.height)["hash"].hex():
-        print(f"Found reorg at height {latest.height}")
+        log_message(f"Found reorg at height {latest.height}")
 
         reorg_block = latest
         latest = Block.get(height=reorg_block.height - 1)
 
         if not latest or latest.height == config.start_height:
-            print("Reorg before start block, aborting")
+            log_message("Reorg before start block, aborting")
             return None
 
         reorg_block.delete()
         orm.commit()
 
     for height in range(latest.height + 1, current_height + 1):
-        print(f"Processing block #{height}")
-
         data = w3.eth.getBlock(height)
         created = datetime.fromtimestamp(data["timestamp"])
         block = Block(**{
@@ -115,8 +120,8 @@ def parser():
             "height": height
         })
 
-        txs = process_transactions(height)
-        print(f"Found {len(txs)} transaction")
+        txs = process_transactions(w3, height)
+        log_message(f"New block: hash={block.blockhash} tx={len(txs)}")
 
         for tx in txs:
             contract = Contract.get(address=tx["contract"])
