@@ -46,3 +46,60 @@ db = {
     "create_db": True
 }
 ```
+
+## Systemd
+
+Sync serivce `/etc/systemd/system/sync.service`:
+
+```
+[Unit]
+Description=Indexer sync service
+After=multi-user.target
+
+[Service]
+Type=idle
+ExecStart=/home/user/indexer/venv/bin/python3 /home/user/indexer/sync.py
+WorkingDirectory=/home/user/indexer
+User=user
+
+[Install]
+WantedBy=multi-user.target
+```
+
+API service `/etc/systemd/system/api.service`:
+
+```
+[Unit]
+Description=Gunicorn instance to serve indexer API
+After=network.target
+
+[Service]
+User=user
+Group=www-data
+WorkingDirectory=/home/user/indexer
+Environment="PATH=/home/user/indexer/venv/bin"
+ExecStart=/home/user/indexer/venv/bin/gunicorn app:app --worker-class gevent -w 1 --bind 0.0.0.0:4321 --reload
+
+[Install]
+WantedBy=multi-user.target
+```
+
+## Nginx
+
+Nginx config `/etc/nginx/sites-available/example.com.conf`:
+
+```
+server {
+    listen 80;
+    server_name example.com;
+
+    location / {
+        proxy_pass http://localhost:4321;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+```
